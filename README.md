@@ -68,3 +68,16 @@ This section has moved here: [https://facebook.github.io/create-react-app/docs/d
 ### `npm run build` fails to minify
 
 This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+
+
+src/
+├── components/     # Componentes React divididos por funcionalidade
+│   ├── Layout/     # Componentes de estrutura da interface
+│   ├── Task/       # Componentes relacionados às tarefas
+│   ├── Calendar/   # Componentes de visualização do calendário
+│   └── UI/         # Componentes de interface reutilizáveis
+├── hooks/          # Hooks personalizados para lógica
+├── utils/          # Funções utilitárias
+├── constants/      # Constantes do aplicativo
+├── context/        # Gerenciamento de estado global
+└── App.jsx         # Componente principal
