@@ -1,5 +1,5 @@
 import React from 'react';
-import { Check, Edit, Trash2, Calendar } from 'lucide-react';
+import { Check, Edit, Trash2, Calendar, AlertTriangle } from 'lucide-react';
 import { formatDate } from '../../utils/dateUtils';
 import { getPriorityColor, getTaskStatusColor } from '../../utils/formatUtils';
 import { handleDragStart } from '../../utils/dragDropUtils';
@@ -9,17 +9,20 @@ import { TASK_STATUS } from '../../constants/taskStatuses';
 
 const TaskCard = ({ task, onEdit, onDelete, onComplete, onClick }) => {
   const { setDraggedTask } = useTaskContext();
+  const isOverdue = task.isOverdue;
 
   return (
     <div 
       key={task.id} 
-      className={`bg-white rounded-lg shadow-md p-4 border-l-4 cursor-grab min-w-64 flex-shrink-0 max-w-xs mr-4 mb-4 hover:shadow-lg transition-shadow ${getTaskStatusColor(task.status)}`}
+      className={`bg-white rounded-lg shadow-md p-4 border-l-4 cursor-grab min-w-64 flex-shrink-0 max-w-xs mr-4 mb-4 hover:shadow-lg transition-shadow ${
+        isOverdue ? "border-red-500 bg-red-50" : getTaskStatusColor(task.status)
+      }`}
       onClick={() => onClick(task)}
       draggable={true}
       onDragStart={(e) => handleDragStart(e, task, setDraggedTask)}
     >
       <div className="flex items-center justify-between mb-2">
-        <h2 className={`text-lg font-semibold ${task.status === TASK_STATUS.COMPLETED ? "line-through text-gray-500" : ""}`}>
+        <h2 className={`text-lg font-semibold ${task.status === TASK_STATUS.COMPLETED ? "line-through text-gray-500" : ""} ${isOverdue ? "text-red-700" : ""}`}>
           {task.name}
         </h2>
       </div>
@@ -39,11 +42,16 @@ const TaskCard = ({ task, onEdit, onDelete, onComplete, onClick }) => {
       </p>
       
       {task.dueDate && (
-        <div className="flex items-center text-sm text-gray-500 mb-3">
-          <Calendar size={14} className="mr-1" />
+        <div className={`flex items-center text-sm mb-3 ${isOverdue ? "text-red-600 font-medium" : "text-gray-500"}`}>
+          {isOverdue ? (
+            <AlertTriangle size={14} className="mr-1" />
+          ) : (
+            <Calendar size={14} className="mr-1" />
+          )}
           <span>
             {formatDate(task.dueDate)}
             {task.dueTime && ` às ${task.dueTime}`}
+            {isOverdue && " - ATRASADA"}
           </span>
         </div>
       )}

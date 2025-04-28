@@ -139,6 +139,17 @@ export const TaskProvider = ({ children }) => {
     return tasks.filter(task => task.dueDate === dateString);
   };
   
+const updateTaskHistory = (taskId, newHistory) => {
+    const updatedTasks = tasks.map(task => 
+        task.id === taskId 
+        ? { ...task, history: newHistory } 
+        : task
+    );
+    
+    setTasks(updatedTasks);
+    return updatedTasks.find(t => t.id === taskId);
+  };
+
   const value = {
     tasks,
     selectedTask,
@@ -151,7 +162,8 @@ export const TaskProvider = ({ children }) => {
     updateTask,
     deleteTask,
     changeTaskStatus,
-    getTasksForDate
+    getTasksForDate,
+    updateTaskHistory 
   };
   
   return (

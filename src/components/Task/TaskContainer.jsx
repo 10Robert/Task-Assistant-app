@@ -11,10 +11,17 @@ const TaskContainer = () => {
   const {
     filterDate,
     statusFilters,
+    priorityFilters,
+    sortOption,
+    sortDirection,
     filteredTasks,
     handleStatusFilterChange,
+    handlePriorityFilterChange,
     handleDateFilterChange,
-    clearDateFilter
+    handleSortChange,
+    toggleSortDirection,
+    clearDateFilter,
+    resetFilters
   } = useTaskFilters(tasks);
 
   // Separar tarefas filtradas por status
@@ -31,10 +38,17 @@ const TaskContainer = () => {
     <div className="flex-1 overflow-auto p-4 pb-16">
       <TaskFilterPanel
         statusFilters={statusFilters}
+        priorityFilters={priorityFilters}
         filterDate={filterDate}
+        sortOption={sortOption}
+        sortDirection={sortDirection}
         handleStatusFilterChange={handleStatusFilterChange}
+        handlePriorityFilterChange={handlePriorityFilterChange}
+        handleSortChange={handleSortChange}
+        toggleSortDirection={toggleSortDirection}
         handleDateFilterChange={handleDateFilterChange}
         clearDateFilter={clearDateFilter}
+        resetFilters={resetFilters}
       />
       
       <TaskArea 
