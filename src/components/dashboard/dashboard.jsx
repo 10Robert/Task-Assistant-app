@@ -3,8 +3,8 @@ import { useTaskContext } from '../../context/TaskContext';
 import { BarChart, LineChart, XAxis, YAxis, Tooltip, Legend, Bar, Line, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { PieChart as PieChartIcon, BarChart as BarChartIcon, TrendingUp, Calendar } from 'lucide-react';
 import { formatMonth } from '../../utils/dateUtils';
-import { TASK_STATUS } from '../../constants/taskStatuses';
-import { TASK_PRIORITY } from '../../constants/taskPriorities';
+import { ALL_STATUSES, TASK_STATUS } from '../../constants/taskStatuses';
+import { ALL_PRIORITIES, TASK_PRIORITY } from '../../constants/taskPriorities';
 
 const Dashboard = () => {
   const { tasks } = useTaskContext();

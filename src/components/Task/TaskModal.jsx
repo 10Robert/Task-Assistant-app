@@ -5,7 +5,6 @@ import StatusTimeline from './StatusTimeline';
 import { ALL_PRIORITIES } from '../../constants/taskPriorities';
 import { ALL_STATUSES } from '../../constants/taskStatuses';
 import { getPriorityColor } from '../../utils/formatUtils';
-import EditableStatusTimeline from './StatusTimeline'
 
 const TaskModal = () => {
   const { 
@@ -15,8 +14,7 @@ const TaskModal = () => {
     setShowModal, 
     tasks, 
     updateTask, 
-    createTask,
-    updateTaskHistory 
+    createTask 
   } = useTaskContext();
 
   const [editedTask, setEditedTask] = useState({
@@ -93,9 +91,9 @@ const TaskModal = () => {
         </div>
         
         {/* Conteúdo */}
-        <div className="p-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            {/* Coluna esquerda */}
+        <div className="p-4 md:p-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5">
+            {/* Coluna esquerda (ou topo em mobile) */}
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center">
@@ -121,7 +119,7 @@ const TaskModal = () => {
                   name="description"
                   value={editedTask.description}
                   onChange={handleInputChange}
-                  rows="5"
+                  rows="4"
                   className="w-full p-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500"
                   placeholder="Descreva detalhes da tarefa"
                 ></textarea>
@@ -164,7 +162,7 @@ const TaskModal = () => {
               </div>
             </div>
             
-            {/* Coluna direita */}
+            {/* Coluna direita (ou embaixo em mobile) */}
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-3">
                 <div>
@@ -204,7 +202,7 @@ const TaskModal = () => {
                   name="notes"
                   value={editedTask.notes || ""}
                   onChange={handleInputChange}
-                  rows="5"
+                  rows="4"
                   className="w-full p-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500"
                   placeholder="Adicione notas ou observações"
                 ></textarea>
@@ -212,14 +210,10 @@ const TaskModal = () => {
             </div>
           </div>
           
-          {/* Timeline de status editável */}
+          {/* Timeline de status */}
           {selectedTask && selectedTask.history && selectedTask.history.length > 0 && (
             <div className="mt-6 bg-gray-50 p-4 rounded-lg border border-gray-200">
-              <EditableStatusTimeline 
-                history={selectedTask.history} 
-                taskId={selectedTask.id}
-                onUpdateHistory={updateTaskHistory}
-              />
+              <StatusTimeline history={selectedTask.history} />
             </div>
           )}
         </div>
