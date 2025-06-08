@@ -3,7 +3,7 @@ import { Plus, List, Calendar, CheckCircle, BarChart2 } from 'lucide-react';
 
 const Sidebar = ({ activeView, setActiveView, handleAddTask }) => {
   return (
-    <div className="w-16 bg-blue-600 h-full flex flex-col items-center py-6">
+    <div className="w-16 bg-purple-600 h-full flex flex-col items-center py-6">
       <button 
         onClick={handleAddTask}
         className="bg-white text-blue-600 p-2 rounded-full shadow-lg flex items-center justify-center mb-6"

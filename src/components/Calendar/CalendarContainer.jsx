@@ -18,7 +18,7 @@ const CalendarContainer = () => {
   } = useCalendar();
 
   return (
-    <div className="flex-1 overflow-auto p-4">
+    <div className="flex-1 overflow-auto p-6">
       <CalendarNavigation
         calendarView={calendarView}
         setCalendarView={setCalendarView}
