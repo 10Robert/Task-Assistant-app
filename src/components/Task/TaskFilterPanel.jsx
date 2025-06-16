@@ -1,10 +1,10 @@
 import React from 'react';
 import { Filter } from 'lucide-react';
-import { ALL_STATUSES } from '../../constants/taskStatuses';
 
 const TaskFilterPanel = ({ 
   statusFilters, 
   filterDate, 
+  availableStatuses, // Usar os status disponíveis do hook
   handleStatusFilterChange, 
   handleDateFilterChange,
   clearDateFilter 
@@ -23,7 +23,7 @@ const TaskFilterPanel = ({
         <div>
           <h4 className="text-sm font-medium mb-2 text-gray-700">Status:</h4>
           <div className="space-y-1">
-            {ALL_STATUSES.map(status => (
+            {availableStatuses.map(status => (
               <label key={status} className="flex items-center cursor-pointer">
                 <input
                   type="checkbox"

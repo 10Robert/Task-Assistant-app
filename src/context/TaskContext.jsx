@@ -133,23 +133,33 @@ export const TaskProvider = ({ children }) => {
     
     setTasks(updatedTasks);
   };
+
+  // Função específica para concluir uma tarefa
+  const handleCompleteTask = (id) => {
+    changeTaskStatus(id, TASK_STATUS.COMPLETED, "Tarefa concluída");
+  };
+
+  // Função específica para editar uma tarefa
+  const handleEdit = (id) => {
+    const task = tasks.find(t => t.id === id);
+    if (task) {
+      setSelectedTask(task);
+      setShowModal(true);
+    }
+  };
+
+  // Função específica para deletar uma tarefa
+  const handleDelete = (id) => {
+    if (window.confirm("Tem certeza que deseja excluir esta tarefa?")) {
+      deleteTask(id);
+    }
+  };
   
   const getTasksForDate = (date) => {
     const dateString = date.toISOString().split('T')[0];
     return tasks.filter(task => task.dueDate === dateString);
   };
   
-const updateTaskHistory = (taskId, newHistory) => {
-    const updatedTasks = tasks.map(task => 
-        task.id === taskId 
-        ? { ...task, history: newHistory } 
-        : task
-    );
-    
-    setTasks(updatedTasks);
-    return updatedTasks.find(t => t.id === taskId);
-  };
-
   const value = {
     tasks,
     selectedTask,
@@ -162,8 +172,10 @@ const updateTaskHistory = (taskId, newHistory) => {
     updateTask,
     deleteTask,
     changeTaskStatus,
-    getTasksForDate,
-    updateTaskHistory 
+    handleCompleteTask,
+    handleEdit,
+    handleDelete,
+    getTasksForDate
   };
   
   return (

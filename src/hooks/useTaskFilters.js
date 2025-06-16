@@ -1,18 +1,20 @@
 import { useState } from 'react';
-import { ALL_STATUSES } from '../constants/taskStatuses';
-import { ALL_PRIORITIES } from '../constants/taskPriorities';
-import { TASK_PRIORITY } from '../constants/taskPriorities';
+import { ALL_STATUSES, TASK_STATUS } from '../constants/taskStatuses';
 
 export function useTaskFilters(tasks) {
   const [filterDate, setFilterDate] = useState("");
+  
+  // Filtrar apenas status que não sejam "Concluída" - todas as variações possíveis
+  const availableStatuses = ALL_STATUSES.filter(status => 
+    status !== TASK_STATUS.COMPLETED && 
+    status !== "Concluída" && 
+    status !== "concluída" &&
+    status !== "CONCLUÍDA"
+  );
+  
   const [statusFilters, setStatusFilters] = useState(
-    ALL_STATUSES.reduce((acc, status) => ({ ...acc, [status]: true }), {})
+    availableStatuses.reduce((acc, status) => ({ ...acc, [status]: true }), {})
   );
-  const [priorityFilters, setPriorityFilters] = useState(
-    ALL_PRIORITIES.reduce((acc, priority) => ({ ...acc, [priority]: true }), {})
-  );
-  const [sortOption, setSortOption] = useState("dueDate");
-  const [sortDirection, setSortDirection] = useState("asc");
   
   const handleStatusFilterChange = (status) => {
     setStatusFilters({
@@ -21,122 +23,53 @@ export function useTaskFilters(tasks) {
     });
   };
   
-  const handlePriorityFilterChange = (priority) => {
-    setPriorityFilters({
-      ...priorityFilters,
-      [priority]: !priorityFilters[priority]
-    });
-  };
-  
   const handleDateFilterChange = (e) => {
     setFilterDate(e.target.value);
-  };
-  
-  const handleSortChange = (e) => {
-    setSortOption(e.target.value);
-  };
-  
-  const toggleSortDirection = () => {
-    setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
   };
   
   const clearDateFilter = () => {
     setFilterDate("");
   };
   
-  const resetFilters = () => {
-    setStatusFilters(
-      ALL_STATUSES.reduce((acc, status) => ({ ...acc, [status]: true }), {})
-    );
-    setPriorityFilters(
-      ALL_PRIORITIES.reduce((acc, priority) => ({ ...acc, [priority]: true }), {})
-    );
-    setFilterDate("");
-    setSortOption("dueDate");
-    setSortDirection("asc");
+  // Função para verificar se uma tarefa está concluída (todas as variações)
+  const isTaskCompleted = (task) => {
+    const completedStatuses = [
+      TASK_STATUS.COMPLETED,
+      "Concluída",
+      "concluída", 
+      "CONCLUÍDA",
+      "Concluida",
+      "concluida"
+    ];
+    return completedStatuses.includes(task.status);
   };
   
-  // Filtrar e ordenar tarefas
-  const filteredAndSortedTasks = () => {
-    // Aplicar filtros
-    let filtered = tasks.filter(task => {
-      // Filtro por status
-      if (!statusFilters[task.status]) {
-        return false;
-      }
-      
-      // Filtro por prioridade
-      if (!priorityFilters[task.priority]) {
-        return false;
-      }
-      
-      // Filtro por data (se especificado)
-      if (filterDate && task.dueDate !== filterDate) {
-        return false;
-      }
-      
-      return true;
-    });
+  const filteredTasks = tasks.filter(task => {
+    // PRIMEIRO E MAIS IMPORTANTE: Excluir TODAS as tarefas concluídas
+    if (isTaskCompleted(task)) {
+      return false;
+    }
     
-    // Ordenar tarefas
-    filtered.sort((a, b) => {
-      let aValue, bValue;
-      
-      // Determinar valores para comparação com base na opção de ordenação
-      switch (sortOption) {
-        case 'name':
-          aValue = a.name.toLowerCase();
-          bValue = b.name.toLowerCase();
-          break;
-        case 'priority':
-          // Ordem de prioridade: Alta > Média > Baixa
-          const priorityValues = {
-            [TASK_PRIORITY.HIGH]: 3,
-            [TASK_PRIORITY.MEDIUM]: 2,
-            [TASK_PRIORITY.LOW]: 1
-          };
-          aValue = priorityValues[a.priority] || 0;
-          bValue = priorityValues[b.priority] || 0;
-          break;
-        case 'status':
-          aValue = a.status;
-          bValue = b.status;
-          break;
-        case 'dueDate':
-          // Para datas, valores vazios vão para o final
-          aValue = a.dueDate ? new Date(a.dueDate) : new Date('9999-12-31');
-          bValue = b.dueDate ? new Date(b.dueDate) : new Date('9999-12-31');
-          break;
-        default:
-          aValue = a.id;
-          bValue = b.id;
-      }
-      
-      // Direção da ordenação
-      const direction = sortDirection === 'asc' ? 1 : -1;
-      
-      // Comparação
-      if (aValue < bValue) return -1 * direction;
-      if (aValue > bValue) return 1 * direction;
-      return 0;
-    });
+    // SEGUNDO: Verificar se o status está nos filtros ativos
+    if (statusFilters[task.status] === false) {
+      return false;
+    }
     
-    return filtered;
-  };
+    // TERCEIRO: Filtro por data (se especificado)
+    if (filterDate && task.dueDate !== filterDate) {
+      return false;
+    }
+    
+    return true;
+  });
   
   return {
     filterDate,
     statusFilters,
-    priorityFilters,
-    sortOption,
-    sortDirection,
-    filteredTasks: filteredAndSortedTasks(),
+    filteredTasks,
+    availableStatuses,
     handleStatusFilterChange,
-    handlePriorityFilterChange,
     handleDateFilterChange,
-    handleSortChange,
-    toggleSortDirection,
-    clearDateFilter,
-    resetFilters
+    clearDateFilter
   };
 }

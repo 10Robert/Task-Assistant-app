@@ -3,9 +3,9 @@ import { TaskProvider, useTaskContext } from './context/TaskContext';
 import Layout from './components/Layout/Layout';
 import TaskViewWithFilters from './components/Task/TaskViewWithFilters';
 import CalendarContainer from './components/Calendar/CalendarContainer';
-import Dashboard from './components/Dashboard/Dashboard';
 import TaskModal from './components/Task/TaskModal';
 import CompletedTasksView from './components/Task/CompletedTasksView';
+import Dashboard from './components/dashboard/Dashboard';
 
 const TaskApp = () => {
   const [activeView, setActiveView] = useState('tasks');

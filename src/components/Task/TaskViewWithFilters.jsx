@@ -54,7 +54,7 @@ const TaskViewWithFilters = () => {
         
       case 'all':
       default:
-        return tasks;
+        return tasks.filter(task => task.status !== TASK_STATUS.COMPLETED)
     }
   };
   
