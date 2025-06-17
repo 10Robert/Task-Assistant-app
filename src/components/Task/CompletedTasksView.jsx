@@ -2,8 +2,7 @@ import React, { useState } from 'react';
 import { CheckCircle, Search, Calendar, Filter, ArrowDownAZ, ChevronUp, ChevronDown } from 'lucide-react';
 import { useTaskContext } from '../../context/TaskContext';
 import { TASK_STATUS } from '../../constants/taskStatuses';
-import { formatDate } from '../../utils/dateUtils';
-
+import { formatDate, formatDateTime } from '../../utils/dateUtils';
 
 const CompletedTasksView = () => {
   const { 
@@ -56,14 +55,14 @@ const CompletedTasksView = () => {
         // Encontrar data de conclusão na história
         const aCompletionEntry = a.history
           ?.filter(entry => entry.status === TASK_STATUS.COMPLETED)
-          .sort((x, y) => new Date(y.date) - new Date(x.date))[0];
+          .sort((x, y) => new Date(y.created_at || y.date) - new Date(x.created_at || x.date))[0];
         
         const bCompletionEntry = b.history
           ?.filter(entry => entry.status === TASK_STATUS.COMPLETED)
-          .sort((x, y) => new Date(y.date) - new Date(x.date))[0];
+          .sort((x, y) => new Date(y.created_at || y.date) - new Date(x.created_at || x.date))[0];
         
-        valueA = aCompletionEntry ? new Date(aCompletionEntry.date) : new Date(0);
-        valueB = bCompletionEntry ? new Date(bCompletionEntry.date) : new Date(0);
+        valueA = aCompletionEntry ? new Date(aCompletionEntry.created_at || aCompletionEntry.date) : new Date(0);
+        valueB = bCompletionEntry ? new Date(bCompletionEntry.created_at || bCompletionEntry.date) : new Date(0);
         break;
         
       case 'name':
@@ -111,9 +110,9 @@ const CompletedTasksView = () => {
     
     const completionEntry = task.history
       .filter(entry => entry.status === TASK_STATUS.COMPLETED)
-      .sort((a, b) => new Date(b.date) - new Date(a.date))[0];
+      .sort((a, b) => new Date(b.created_at || b.date) - new Date(a.created_at || a.date))[0];
     
-    return completionEntry ? completionEntry.date : null;
+    return completionEntry ? (completionEntry.created_at || completionEntry.date) : null;
   };
 
   return (
@@ -254,7 +253,7 @@ const CompletedTasksView = () => {
                     
                     <div className="flex items-center text-sm text-green-600">
                       <CheckCircle size={14} className="mr-1" />
-                      Concluída em: {formatDate(getCompletionDate(task) || '')}
+                      Concluída: {formatDateTime(getCompletionDate(task) || '')}
                     </div>
                   </div>
 

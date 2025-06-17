@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useTaskContext } from '../../context/TaskContext';
 import { CheckCircle, Search, Filter, Archive, MoreHorizontal, ChevronUp, ChevronDown } from 'lucide-react';
-import { formatDate } from '../../utils/dateUtils';
+import { formatDate, formatDateTime } from '../../utils/dateUtils';
 import { TASK_STATUS } from '../../constants/taskStatuses';
 import { ALL_PRIORITIES } from '../../constants/taskPriorities';
 import { getPriorityColor } from '../../utils/formatUtils';
@@ -54,11 +54,11 @@ const CompletedTasksScreen = () => {
         // Encontrar a entrada de conclusão
         const completionEntry = task.history
           .filter(entry => entry.status === TASK_STATUS.COMPLETED)
-          .sort((a, b) => new Date(b.date) - new Date(a.date))[0];
+          .sort((a, b) => new Date(b.created_at || b.date) - new Date(a.created_at || a.date))[0];
           
         if (!completionEntry) return false;
         
-        return completionEntry.date >= dateRange.start;
+        return (completionEntry.created_at || completionEntry.date) >= dateRange.start;
       });
     }
     
@@ -67,11 +67,11 @@ const CompletedTasksScreen = () => {
         // Encontrar a entrada de conclusão
         const completionEntry = task.history
           .filter(entry => entry.status === TASK_STATUS.COMPLETED)
-          .sort((a, b) => new Date(b.date) - new Date(a.date))[0];
+          .sort((a, b) => new Date(b.created_at || b.date) - new Date(a.created_at || a.date))[0];
           
         if (!completionEntry) return false;
         
-        return completionEntry.date <= dateRange.end;
+        return (completionEntry.created_at || completionEntry.date) <= dateRange.end;
       });
     }
     
@@ -83,14 +83,14 @@ const CompletedTasksScreen = () => {
         // Encontrar a data de conclusão mais recente para cada tarefa
         const aCompletionEntry = a.history
           .filter(entry => entry.status === TASK_STATUS.COMPLETED)
-          .sort((x, y) => new Date(y.date) - new Date(x.date))[0];
+          .sort((x, y) => new Date(y.created_at || y.date) - new Date(x.created_at || x.date))[0];
           
         const bCompletionEntry = b.history
           .filter(entry => entry.status === TASK_STATUS.COMPLETED)
-          .sort((x, y) => new Date(y.date) - new Date(x.date))[0];
+          .sort((x, y) => new Date(y.created_at || y.date) - new Date(x.created_at || x.date))[0];
           
-        aValue = aCompletionEntry ? new Date(aCompletionEntry.date) : new Date(0);
-        bValue = bCompletionEntry ? new Date(bCompletionEntry.date) : new Date(0);
+        aValue = aCompletionEntry ? new Date(aCompletionEntry.created_at || aCompletionEntry.date) : new Date(0);
+        bValue = bCompletionEntry ? new Date(bCompletionEntry.created_at || bCompletionEntry.date) : new Date(0);
       } else if (sortOption === 'name') {
         aValue = a.name.toLowerCase();
         bValue = b.name.toLowerCase();
@@ -350,9 +350,9 @@ const CompletedTasksScreen = () => {
                   // Encontrar a data de conclusão mais recente
                   const completionEntry = task.history
                     .filter(entry => entry.status === TASK_STATUS.COMPLETED)
-                    .sort((a, b) => new Date(b.date) - new Date(a.date))[0];
+                    .sort((a, b) => new Date(b.created_at || b.date) - new Date(a.created_at || a.date))[0];
                   
-                  const completionDate = completionEntry ? completionEntry.date : '-';
+                  const completionDate = completionEntry ? (completionEntry.created_at || completionEntry.date) : '-';
                   
                   return (
                     <tr key={task.id} className="hover:bg-gray-50">
@@ -376,7 +376,7 @@ const CompletedTasksScreen = () => {
                         </span>
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
-                        {formatDate(completionDate)}
+                        {formatDateTime(completionDate)}
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
                         {task.dueDate ? formatDate(task.dueDate) : '-'}

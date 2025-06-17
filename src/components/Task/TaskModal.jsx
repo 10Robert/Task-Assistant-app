@@ -1,5 +1,3 @@
-// src/components/Task/TaskModal.jsx - VERSÃO COM DEBUG
-
 import React, { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import { useTaskContext } from '../../context/TaskContext';
@@ -26,27 +24,6 @@ const TaskModal = () => {
     dueDate: "",
     dueTime: ""
   });
-
-  // Debug do selectedTask
-  useEffect(() => {
-    console.log('🎯 ===== TASK MODAL DEBUG =====');
-    console.log('🎯 ShowModal:', showModal);
-    console.log('🎯 SelectedTask:', selectedTask);
-    console.log('🎯 SelectedTask ID:', selectedTask?.id);
-    console.log('🎯 SelectedTask History:', selectedTask?.history);
-    if (selectedTask?.history) {
-      console.log('🎯 Histórico detalhado:');
-      selectedTask.history.forEach((item, index) => {
-        console.log(`  ${index}:`, {
-          id: item.id,
-          status: item.status,
-          notes: item.notes,
-          created_at: item.created_at
-        });
-      });
-    }
-    console.log('🎯 ===== FIM DEBUG =====');
-  }, [selectedTask, showModal]);
 
   // Atualizar estado quando selectedTask mudar
   useEffect(() => {
@@ -136,7 +113,7 @@ const TaskModal = () => {
       <div className="bg-white rounded-lg p-6 w-full max-w-md max-h-screen overflow-y-auto">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-bold">
-            {isEditing ? `Editar Tarefa (ID: ${selectedTask?.id})` : 'Nova Tarefa'}
+            {isEditing ? 'Editar Tarefa' : 'Nova Tarefa'}
           </h2>
           <button 
             onClick={handleModalClose}
@@ -145,17 +122,6 @@ const TaskModal = () => {
             <X size={24} />
           </button>
         </div>
-        
-        {/* Debug info */}
-        {isEditing && (
-          <div className="mb-4 p-2 bg-yellow-50 rounded text-xs">
-            <strong>Debug Modal:</strong>
-            <div>Task ID: {selectedTask?.id}</div>
-            <div>Task Name: {selectedTask?.name}</div>
-            <div>History Items: {selectedTask?.history?.length || 0}</div>
-            <div>Is Editing: {isEditing ? 'Sim' : 'Não'}</div>
-          </div>
-        )}
         
         <div className="space-y-4">
           <div>
@@ -248,18 +214,10 @@ const TaskModal = () => {
           
           {/* Mostrar StatusTimeline apenas se for edição */}
           {isEditing && selectedTask && (
-            <div>
-              <div className="mb-2 p-2 bg-blue-50 rounded text-xs">
-                <strong>Passando para StatusTimeline:</strong>
-                <div>TaskId: {selectedTask.id}</div>
-                <div>History: {selectedTask.history?.length || 0} itens</div>
-              </div>
-              
-              <StatusTimeline 
-                history={selectedTask.history} 
-                taskId={selectedTask.id}
-              />
-            </div>
+            <StatusTimeline 
+              history={selectedTask.history} 
+              taskId={selectedTask.id}
+            />
           )}
         </div>
         

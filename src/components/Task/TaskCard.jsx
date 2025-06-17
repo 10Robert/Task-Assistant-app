@@ -1,5 +1,3 @@
-// src/components/Task/TaskCard.jsx - VERSÃO COM DEBUG
-
 import React from 'react';
 import { Check, Edit, Trash2, Calendar, RotateCcw } from 'lucide-react';
 import { formatDate } from '../../utils/dateUtils';
@@ -12,14 +10,11 @@ import { TASK_STATUS } from '../../constants/taskStatuses';
 const TaskCard = ({ task, onEdit, onDelete, onComplete, onClick }) => {
   const { setDraggedTask, changeTaskStatus } = useTaskContext();
 
-  // Debug: verificar se a tarefa tem todos os dados necessários
+  // Verificar se a tarefa tem todos os dados necessários
   if (!task || !task.id) {
     return (
       <div className="bg-red-50 border border-red-200 rounded-lg p-4 min-w-64 flex-shrink-0 max-w-xs mr-4 mb-4">
-        <p className="text-red-600 text-sm">❌ Tarefa inválida: dados ausentes</p>
-        <pre className="text-xs mt-2 bg-red-100 p-2 rounded overflow-auto">
-          {JSON.stringify(task, null, 2)}
-        </pre>
+        <p className="text-red-600 text-sm">Erro: Dados da tarefa incompletos</p>
       </div>
     );
   }
@@ -152,17 +147,6 @@ const TaskCard = ({ task, onEdit, onDelete, onComplete, onClick }) => {
           </>
         )}
       </div>
-
-      {/* Debug info - remover em produção */}
-      {process.env.NODE_ENV === 'development' && (
-        <div className="mt-2 p-2 bg-gray-100 rounded text-xs">
-          <strong>Debug:</strong>
-          <div>ID: {task.id}</div>
-          <div>Nome: {task.name || 'VAZIO'}</div>
-          <div>Status: {task.status || 'VAZIO'}</div>
-          <div>Prioridade: {task.priority || 'VAZIO'}</div>
-        </div>
-      )}
     </div>
   );
 };

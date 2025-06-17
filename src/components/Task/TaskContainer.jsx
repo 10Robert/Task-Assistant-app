@@ -1,5 +1,3 @@
-// src/components/Task/TaskContainer.jsx - VERSÃO FINAL
-
 import React from 'react';
 import { useTaskContext } from '../../context/TaskContext';
 import { useTaskFilters } from '../../hooks/useTaskFilters';
@@ -14,6 +12,7 @@ const TaskContainer = () => {
     filterDate,
     statusFilters,
     filteredTasks,
+    availableStatuses,
     handleStatusFilterChange,
     handleDateFilterChange,
     clearDateFilter
@@ -65,6 +64,7 @@ const TaskContainer = () => {
       <TaskFilterPanel
         statusFilters={statusFilters}
         filterDate={filterDate}
+        availableStatuses={availableStatuses}
         handleStatusFilterChange={handleStatusFilterChange}
         handleDateFilterChange={handleDateFilterChange}
         clearDateFilter={clearDateFilter}

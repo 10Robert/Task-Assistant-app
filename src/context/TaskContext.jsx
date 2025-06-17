@@ -1,5 +1,3 @@
-// src/context/TaskContext.jsx - VERSÃO COM HISTÓRICO CORRIGIDO
-
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { TASK_STATUS } from '../constants/taskStatuses';
 import { taskAPI, convertAPITasksToFrontend, convertAPITaskToFrontend } from '../services/api';
@@ -8,7 +6,7 @@ const TaskContext = createContext();
 
 export const useTaskContext = () => useContext(TaskContext);
 
-// FUNÇÃO CORRIGIDA PARA LIDAR COM RESPOSTA DA API
+// Função para converter resposta da API
 const convertAPIResponseToFrontend = (apiResponse) => {
   if (!apiResponse) {
     return null;
@@ -75,10 +73,9 @@ export const TaskProvider = ({ children }) => {
     }
   };
 
-  // FUNÇÃO PARA RECARREGAR UMA TAREFA ESPECÍFICA COM HISTÓRICO ATUALIZADO
+  // Função para recarregar uma tarefa específica com histórico atualizado
   const reloadTask = async (taskId) => {
     try {
-      console.log('🔄 Recarregando tarefa:', taskId);
       const apiTask = await taskAPI.getTask(taskId);
       const frontendTask = convertAPIResponseToFrontend(apiTask);
       
@@ -92,11 +89,10 @@ export const TaskProvider = ({ children }) => {
           setSelectedTask(frontendTask);
         }
         
-        console.log('✅ Tarefa recarregada com histórico:', frontendTask);
         return frontendTask;
       }
     } catch (err) {
-      console.error('❌ Erro ao recarregar tarefa:', err);
+      console.error('Erro ao recarregar tarefa:', err);
     }
   };
 
@@ -149,7 +145,7 @@ export const TaskProvider = ({ children }) => {
           setSelectedTask(frontendTask);
         }
         
-        // CORREÇÃO: Recarregar tarefa para obter histórico atualizado
+        // Recarregar tarefa para obter histórico atualizado
         setTimeout(() => reloadTask(id), 500);
       }
       
@@ -185,11 +181,7 @@ export const TaskProvider = ({ children }) => {
       setLoading(true);
       setError(null);
       
-      console.log('🔄 Alterando status:', { id, newStatus, note });
-      
       const apiResponse = await taskAPI.updateTaskStatus(id, newStatus, note);
-      console.log('🔄 Resposta da API:', apiResponse);
-      
       const frontendTask = convertAPIResponseToFrontend(apiResponse);
       
       if (frontendTask) {
@@ -201,7 +193,7 @@ export const TaskProvider = ({ children }) => {
           setSelectedTask(frontendTask);
         }
         
-        // CORREÇÃO: Recarregar tarefa após 500ms para garantir que o histórico foi salvo
+        // Recarregar tarefa após 500ms para garantir que o histórico foi salvo
         setTimeout(() => reloadTask(id), 500);
       }
       
@@ -253,7 +245,7 @@ export const TaskProvider = ({ children }) => {
     deleteTask,
     changeTaskStatus,
     loadTasks,
-    reloadTask, // Expor função para recarregar tarefa
+    reloadTask,
     getTasksForDate,
     handleEdit,
     handleDelete,

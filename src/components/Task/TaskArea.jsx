@@ -1,9 +1,7 @@
-// src/components/Task/TaskArea.jsx - LÓGICA DE DROP CORRIGIDA
-
 import React from 'react';
 import { Clock, AlertCircle, CheckCircle, FileText } from 'lucide-react';
 import TaskCard from './TaskCard';
-import { handleDragOver, handleDragStart } from '../../utils/dragDropUtils';
+import { handleDragOver } from '../../utils/dragDropUtils';
 import { TASK_STATUS } from '../../constants/taskStatuses';
 import { useTaskContext } from '../../context/TaskContext';
 
@@ -43,7 +41,6 @@ const TaskArea = ({ title, areaType, tasks }) => {
           break;
         case "finished":
           // Para área finalizada, determinar se pausar ou concluir
-          // Se vier de uma área ativa, pausar. Se já estiver pausada, manter.
           if (draggedTask.status === TASK_STATUS.IN_PROGRESS || draggedTask.status === TASK_STATUS.PENDING) {
             newStatus = TASK_STATUS.PAUSED;
             statusMessage = "Pausada";
