@@ -1,278 +1,229 @@
-import React, { useState } from 'react';
+// src/components/Task/StatusTimeline.jsx - VERSÃO COM DEBUG DETALHADO
+
+import React, { useState, useEffect } from 'react';
 import { formatDate } from '../../utils/dateUtils';
 import { getTaskBadgeColor } from '../../utils/formatUtils';
-import { Clock, Edit2, Trash2, Plus, Save, X } from 'lucide-react';
-import { ALL_STATUSES } from '../../constants/taskStatuses';
+import { Plus, Save, X, RefreshCw } from 'lucide-react';
+import { useTaskContext } from '../../context/TaskContext';
 
-const EditableStatusTimeline = ({ history, taskId, onUpdateHistory }) => {
-  const [editingIndex, setEditingIndex] = useState(null);
-  const [addingNew, setAddingNew] = useState(false);
-  const [editedEntry, setEditedEntry] = useState({
-    date: '',
-    status: '',
-    notes: ''
-  });
+const StatusTimeline = ({ history, taskId }) => {
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [newNote, setNewNote] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { changeTaskStatus, selectedTask, reloadTask } = useTaskContext();
 
-  // Inicia a edição de uma entrada existente
-  const handleStartEdit = (index) => {
-    setEditingIndex(index);
-    setEditedEntry({
-      date: history[index].date,
-      status: history[index].status,
-      notes: history[index].notes || ''
-    });
-    setAddingNew(false);
+  // Debug: Log do histórico recebido
+  useEffect(() => {
+    console.log('📊 ===== STATUS TIMELINE DEBUG =====');
+    console.log('📊 TaskId recebido:', taskId);
+    console.log('📊 História recebida (props):', history);
+    console.log('📊 Tipo da história:', typeof history);
+    console.log('📊 É array:', Array.isArray(history));
+    console.log('📊 Quantidade de itens:', history?.length || 0);
+    console.log('📊 SelectedTask:', selectedTask);
+    console.log('📊 SelectedTask.history:', selectedTask?.history);
+    
+    if (history && history.length > 0) {
+      history.forEach((item, index) => {
+        console.log(`📊 Item ${index}:`, {
+          id: item.id,
+          status: item.status,
+          notes: item.notes,
+          created_at: item.created_at,
+          date: item.date
+        });
+      });
+    }
+    console.log('📊 ===== FIM DEBUG =====');
+  }, [history, taskId, selectedTask]);
+
+  const handleAddNote = async () => {
+    if (!newNote.trim()) {
+      alert('Digite uma anotação antes de salvar');
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      
+      const currentStatus = selectedTask?.status || 'Pendente';
+      console.log('📝 Adicionando nota:', { taskId, currentStatus, note: newNote.trim() });
+      
+      await changeTaskStatus(taskId, currentStatus, newNote.trim());
+      
+      // Aguardar e recarregar
+      setTimeout(async () => {
+        console.log('🔄 Recarregando tarefa após adicionar nota...');
+        await reloadTask(taskId);
+      }, 1000);
+      
+      setNewNote('');
+      setShowAddForm(false);
+      
+    } catch (error) {
+      console.error('❌ Erro ao adicionar nota:', error);
+      alert('Erro ao adicionar anotação: ' + error.message);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  // Inicia a adição de uma nova entrada
-  const handleStartAdd = () => {
-    setAddingNew(true);
-    setEditingIndex(null);
-    setEditedEntry({
-      date: new Date().toISOString().split('T')[0],
-      status: history[history.length - 1]?.status || 'Pendente',
-      notes: ''
-    });
+  const handleRefreshHistory = async () => {
+    console.log('🔄 Atualizando histórico manualmente...');
+    try {
+      await reloadTask(taskId);
+    } catch (error) {
+      console.error('❌ Erro ao atualizar histórico:', error);
+    }
   };
 
-  // Cancela a edição ou adição
   const handleCancel = () => {
-    setEditingIndex(null);
-    setAddingNew(false);
+    setNewNote('');
+    setShowAddForm(false);
   };
 
-  // Salva as alterações em uma entrada existente
-  const handleSaveEdit = () => {
-    if (editingIndex !== null) {
-      const updatedHistory = [...history];
-      updatedHistory[editingIndex] = { ...editedEntry };
-      onUpdateHistory(taskId, updatedHistory);
-    }
-    setEditingIndex(null);
-  };
+  // Usar histórico do selectedTask se disponível, senão usar props
+  const currentHistory = selectedTask?.history || history || [];
+  
+  // Debug do histórico atual
+  console.log('📊 Histórico atual sendo usado:', currentHistory);
+  
+  // Ordenar histórico por data (mais recente primeiro)
+  const sortedHistory = currentHistory ? [...currentHistory].sort((a, b) => {
+    const dateA = new Date(a.created_at || a.date);
+    const dateB = new Date(b.created_at || b.date);
+    return dateB - dateA;
+  }) : [];
 
-  // Salva uma nova entrada
-  const handleSaveNew = () => {
-    if (addingNew) {
-      const updatedHistory = [...history, { ...editedEntry }];
-      onUpdateHistory(taskId, updatedHistory);
-    }
-    setAddingNew(false);
-  };
-
-  // Remove uma entrada do histórico
-  const handleRemove = (index) => {
-    if (window.confirm('Tem certeza que deseja remover este registro do histórico?')) {
-      const updatedHistory = [...history];
-      updatedHistory.splice(index, 1);
-      onUpdateHistory(taskId, updatedHistory);
-    }
-  };
-
-  // Manipula mudanças nos campos de edição
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setEditedEntry({
-      ...editedEntry,
-      [name]: value
-    });
-  };
+  console.log('📊 Histórico ordenado:', sortedHistory);
 
   return (
     <div className="mt-4 pt-3 border-t border-gray-200">
-      <div className="flex items-center justify-between mb-2">
-        <h3 className="text-sm font-medium text-gray-700 flex items-center">
-          <Clock size={16} className="mr-2" />
-          Histórico de Status:
-        </h3>
-        <button
-          onClick={handleStartAdd}
-          className="text-blue-600 hover:text-blue-800 text-xs flex items-center"
-          disabled={addingNew || editingIndex !== null}
-        >
-          <Plus size={14} className="mr-1" />
-          Adicionar
-        </button>
+      {/* Debug Info - Remover em produção */}
+      <div className="mb-2 p-2 bg-yellow-50 rounded text-xs">
+        <strong>Debug:</strong>
+        <div>TaskId: {taskId}</div>
+        <div>Props History: {history?.length || 0} itens</div>
+        <div>SelectedTask History: {selectedTask?.history?.length || 0} itens</div>
+        <div>Current History: {currentHistory?.length || 0} itens</div>
+        <div>Sorted History: {sortedHistory?.length || 0} itens</div>
       </div>
-      
-      <div className="space-y-4">
-        {/* Formulário para adicionar nova entrada */}
-        {addingNew && (
-          <div className="bg-blue-50 p-3 rounded-md border border-blue-200 mb-2">
-            <h4 className="text-sm font-medium mb-2 text-blue-700">Nova Entrada</h4>
-            <div className="grid grid-cols-2 gap-2 mb-2">
-              <div>
-                <label className="block text-xs text-gray-600 mb-1">Data:</label>
-                <input
-                  type="date"
-                  name="date"
-                  value={editedEntry.date}
-                  onChange={handleInputChange}
-                  className="w-full p-1 text-sm border border-gray-300 rounded"
-                />
+
+      <div className="flex justify-between items-center mb-3">
+        <h3 className="text-sm font-medium text-gray-700">
+          Histórico de Status ({sortedHistory.length})
+        </h3>
+        <div className="flex gap-1">
+          <button
+            onClick={handleRefreshHistory}
+            className="flex items-center gap-1 px-2 py-1 text-xs bg-gray-50 hover:bg-gray-100 text-gray-600 rounded transition-colors"
+            title="Atualizar histórico"
+          >
+            <RefreshCw size={12} />
+          </button>
+          <button
+            onClick={() => setShowAddForm(!showAddForm)}
+            className="flex items-center gap-1 px-2 py-1 text-xs bg-blue-50 hover:bg-blue-100 text-blue-600 rounded transition-colors"
+            disabled={showAddForm}
+          >
+            <Plus size={12} />
+            Adicionar Nota
+          </button>
+        </div>
+      </div>
+
+      {/* Formulário para adicionar nova nota */}
+      {showAddForm && (
+        <div className="mb-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+          <label className="block text-xs font-medium text-blue-700 mb-1">
+            Nova anotação:
+          </label>
+          <textarea
+            value={newNote}
+            onChange={(e) => setNewNote(e.target.value)}
+            placeholder="Descreva o que aconteceu com esta tarefa..."
+            className="w-full p-2 text-sm border border-blue-300 rounded resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+            rows={3}
+            disabled={isSubmitting}
+          />
+          <div className="flex justify-end gap-2 mt-2">
+            <button
+              onClick={handleCancel}
+              className="flex items-center gap-1 px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 text-gray-600 rounded transition-colors"
+              disabled={isSubmitting}
+            >
+              <X size={12} />
+              Cancelar
+            </button>
+            <button
+              onClick={handleAddNote}
+              className="flex items-center gap-1 px-2 py-1 text-xs bg-blue-500 hover:bg-blue-600 text-white rounded transition-colors disabled:opacity-50"
+              disabled={isSubmitting || !newNote.trim()}
+            >
+              <Save size={12} />
+              {isSubmitting ? 'Salvando...' : 'Salvar'}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Lista do histórico com debug detalhado */}
+      <div className="space-y-3 max-h-80 overflow-y-auto">
+        {sortedHistory.length > 0 ? (
+          sortedHistory.map((entry, index) => {
+            console.log(`📊 Renderizando item ${index}:`, entry);
+            
+            return (
+              <div key={entry.id || `entry-${index}`} className="flex items-start">
+                <div className="flex-shrink-0 h-3 w-3 mt-1.5 relative">
+                  <div className={`h-3 w-3 rounded-full ${
+                    entry.status === "Concluída" ? "bg-green-500" : 
+                    entry.status === "Pausada" ? "bg-red-500" :
+                    entry.status === "Em andamento" ? "bg-blue-500" :
+                    "bg-yellow-500"
+                  }`}></div>
+                  {index < sortedHistory.length - 1 && (
+                    <div className="absolute top-3 left-1/2 w-px h-8 -ml-px bg-gray-300"></div>
+                  )}
+                </div>
+                
+                <div className="ml-3 flex-1">
+                  {/* Debug de cada item */}
+                  <div className="mb-1 p-1 bg-gray-100 rounded text-xs">
+                    <div>ID: {entry.id}</div>
+                    <div>Status: {entry.status}</div>
+                    <div>Data: {entry.created_at || entry.date}</div>
+                    <div>Notas: {entry.notes || 'sem notas'}</div>
+                  </div>
+                  
+                  <div className="flex items-center gap-2 flex-wrap mb-1">
+                    <span className="text-xs text-gray-500">
+                      {formatDate(entry.created_at || entry.date)}
+                    </span>
+                    <span className={`text-xs py-0.5 px-2 rounded-full ${getTaskBadgeColor(entry.status)}`}>
+                      {entry.status}
+                    </span>
+                  </div>
+                  
+                  {entry.notes && (
+                    <div className="bg-gray-50 p-2 rounded text-xs text-gray-700 border-l-2 border-gray-300">
+                      {entry.notes}
+                    </div>
+                  )}
+                </div>
               </div>
-              <div>
-                <label className="block text-xs text-gray-600 mb-1">Status:</label>
-                <select
-                  name="status"
-                  value={editedEntry.status}
-                  onChange={handleInputChange}
-                  className="w-full p-1 text-sm border border-gray-300 rounded"
-                >
-                  {ALL_STATUSES.map(status => (
-                    <option key={status} value={status}>{status}</option>
-                  ))}
-                </select>
-              </div>
-            </div>
-            <div className="mb-2">
-              <label className="block text-xs text-gray-600 mb-1">Anotações:</label>
-              <textarea
-                name="notes"
-                value={editedEntry.notes}
-                onChange={handleInputChange}
-                className="w-full p-1 text-sm border border-gray-300 rounded"
-                rows="2"
-              />
-            </div>
-            <div className="flex justify-end space-x-2">
-              <button
-                onClick={handleCancel}
-                className="px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded text-gray-700 flex items-center"
-              >
-                <X size={12} className="mr-1" />
-                Cancelar
-              </button>
-              <button
-                onClick={handleSaveNew}
-                className="px-2 py-1 text-xs bg-blue-600 hover:bg-blue-700 rounded text-white flex items-center"
-              >
-                <Save size={12} className="mr-1" />
-                Salvar
-              </button>
-            </div>
+            );
+          })
+        ) : (
+          <div className="text-xs text-gray-500 text-center py-4 bg-gray-50 rounded">
+            <div className="mb-1">📝</div>
+            Nenhum histórico disponível
+            <div className="text-xs mt-1">Adicione a primeira anotação!</div>
           </div>
         )}
-        
-        {/* Lista de entradas do histórico */}
-        {history.map((entry, index) => (
-          <div key={index} className="flex items-start group">
-            <div className="flex-shrink-0 h-5 w-5 mt-1 relative">
-              <div className={`h-5 w-5 rounded-full ${
-                entry.status === "Concluída" ? "bg-green-500" : 
-                entry.status === "Pausada" ? "bg-red-500" :
-                entry.status === "Em andamento" ? "bg-blue-500" :
-                "bg-yellow-500"
-              } flex items-center justify-center`}>
-                {entry.status === "Concluída" && (
-                  <svg className="h-3 w-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-                  </svg>
-                )}
-              </div>
-              {index < history.length - 1 && (
-                <div className="absolute top-5 left-1/2 w-0.5 h-8 -ml-px bg-gray-300"></div>
-              )}
-            </div>
-            
-            {editingIndex === index ? (
-              // Modo de edição
-              <div className="ml-4 min-w-0 flex-1 bg-blue-50 p-2 rounded-md border border-blue-200">
-                <div className="grid grid-cols-2 gap-2 mb-2">
-                  <div>
-                    <label className="block text-xs text-gray-600 mb-1">Data:</label>
-                    <input
-                      type="date"
-                      name="date"
-                      value={editedEntry.date}
-                      onChange={handleInputChange}
-                      className="w-full p-1 text-sm border border-gray-300 rounded"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs text-gray-600 mb-1">Status:</label>
-                    <select
-                      name="status"
-                      value={editedEntry.status}
-                      onChange={handleInputChange}
-                      className="w-full p-1 text-sm border border-gray-300 rounded"
-                    >
-                      {ALL_STATUSES.map(status => (
-                        <option key={status} value={status}>{status}</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-                <div className="mb-2">
-                  <label className="block text-xs text-gray-600 mb-1">Anotações:</label>
-                  <textarea
-                    name="notes"
-                    value={editedEntry.notes}
-                    onChange={handleInputChange}
-                    className="w-full p-1 text-sm border border-gray-300 rounded"
-                    rows="2"
-                  />
-                </div>
-                <div className="flex justify-end space-x-2">
-                  <button
-                    onClick={handleCancel}
-                    className="px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded text-gray-700 flex items-center"
-                  >
-                    <X size={12} className="mr-1" />
-                    Cancelar
-                  </button>
-                  <button
-                    onClick={handleSaveEdit}
-                    className="px-2 py-1 text-xs bg-blue-600 hover:bg-blue-700 rounded text-white flex items-center"
-                  >
-                    <Save size={12} className="mr-1" />
-                    Salvar
-                  </button>
-                </div>
-              </div>
-            ) : (
-              // Modo de visualização
-              <div className="ml-4 min-w-0 flex-1 relative">
-                <div className="flex items-center">
-                  <span className="text-sm font-medium text-gray-700">
-                    {formatDate(entry.date)}
-                  </span>
-                  <span className={`ml-2 text-xs py-0.5 px-2 rounded-full ${getTaskBadgeColor(entry.status)}`}>
-                    {entry.status}
-                  </span>
-                  
-                  {/* Botões de ação visíveis apenas no hover */}
-                  <div className="absolute right-0 top-0 hidden group-hover:flex items-center space-x-1">
-                    <button
-                      onClick={() => handleStartEdit(index)}
-                      className="p-1 text-blue-600 hover:bg-blue-100 rounded"
-                      disabled={editingIndex !== null || addingNew}
-                      title="Editar"
-                    >
-                      <Edit2 size={12} />
-                    </button>
-                    <button
-                      onClick={() => handleRemove(index)}
-                      className="p-1 text-red-600 hover:bg-red-100 rounded"
-                      disabled={editingIndex !== null || addingNew || history.length <= 1}
-                      title="Remover"
-                    >
-                      <Trash2 size={12} />
-                    </button>
-                  </div>
-                </div>
-                {entry.notes && (
-                  <p className="text-xs text-gray-600 mt-1 bg-gray-50 p-2 rounded-md border-l-2 border-gray-300">
-                    {entry.notes}
-                  </p>
-                )}
-              </div>
-            )}
-          </div>
-        ))}
       </div>
     </div>
   );
 };
 
-export default EditableStatusTimeline;
+export default StatusTimeline;

@@ -1,5 +1,7 @@
+// src/components/Task/TaskCard.jsx - VERSÃO COM DEBUG
+
 import React from 'react';
-import { Check, Edit, Trash2, Calendar, AlertTriangle } from 'lucide-react';
+import { Check, Edit, Trash2, Calendar, RotateCcw } from 'lucide-react';
 import { formatDate } from '../../utils/dateUtils';
 import { getPriorityColor, getTaskStatusColor } from '../../utils/formatUtils';
 import { handleDragStart } from '../../utils/dragDropUtils';
@@ -8,88 +10,159 @@ import { useTaskContext } from '../../context/TaskContext';
 import { TASK_STATUS } from '../../constants/taskStatuses';
 
 const TaskCard = ({ task, onEdit, onDelete, onComplete, onClick }) => {
-  const { setDraggedTask } = useTaskContext();
-  const isOverdue = task.isOverdue;
+  const { setDraggedTask, changeTaskStatus } = useTaskContext();
+
+  // Debug: verificar se a tarefa tem todos os dados necessários
+  if (!task || !task.id) {
+    return (
+      <div className="bg-red-50 border border-red-200 rounded-lg p-4 min-w-64 flex-shrink-0 max-w-xs mr-4 mb-4">
+        <p className="text-red-600 text-sm">❌ Tarefa inválida: dados ausentes</p>
+        <pre className="text-xs mt-2 bg-red-100 p-2 rounded overflow-auto">
+          {JSON.stringify(task, null, 2)}
+        </pre>
+      </div>
+    );
+  }
+
+  const handleReactivate = async (e) => {
+    e.stopPropagation();
+    try {
+      await changeTaskStatus(task.id, TASK_STATUS.PENDING, 'Tarefa reativada');
+    } catch (error) {
+      alert('Erro ao reativar tarefa: ' + error.message);
+    }
+  };
 
   return (
     <div 
       key={task.id} 
-      className={`bg-white rounded-lg shadow-md p-4 border-l-4 cursor-grab min-w-64 flex-shrink-0 max-w-xs mr-4 mb-4 hover:shadow-lg transition-shadow ${
-        isOverdue ? "border-red-500 bg-red-50" : getTaskStatusColor(task.status)
+      className={`bg-white rounded-lg shadow-md p-4 border-l-4 cursor-grab min-w-64 flex-shrink-0 max-w-xs mr-4 mb-4 hover:shadow-lg transition-shadow ${getTaskStatusColor(task.status)} ${
+        task.status === TASK_STATUS.COMPLETED ? 'opacity-75' : ''
       }`}
       onClick={() => onClick(task)}
       draggable={true}
       onDragStart={(e) => handleDragStart(e, task, setDraggedTask)}
     >
+      {/* Header com nome da tarefa */}
       <div className="flex items-center justify-between mb-2">
-        <h2 className={`text-lg font-semibold ${task.status === TASK_STATUS.COMPLETED ? "line-through text-gray-500" : ""} ${isOverdue ? "text-red-700" : ""}`}>
-          {task.name}
+        <h2 className={`text-lg font-semibold ${task.status === TASK_STATUS.COMPLETED ? "line-through text-gray-500" : ""}`}>
+          {task.name || 'Sem título'}
         </h2>
       </div>
       
+      {/* Prioridade e Status */}
       <div className="flex items-center justify-between mb-2">
-        <span className={`px-2 py-1 rounded-full text-xs font-medium ${getPriorityColor(task.priority)}`}>
-          {task.priority}
+        <span className={`px-2 py-1 rounded-full text-xs font-medium ${getPriorityColor(task.priority || 'Média')}`}>
+          {task.priority || 'Média'}
         </span>
         <div className="flex items-center">
           <StatusIcon status={task.status} />
-          <span className="ml-1 text-sm text-gray-600">{task.status}</span>
+          <span className="ml-1 text-sm text-gray-600">{task.status || 'Pendente'}</span>
         </div>
       </div>
       
-      <p className={`text-gray-600 mb-2 text-sm ${task.status === TASK_STATUS.COMPLETED ? "line-through text-gray-500" : ""}`}>
-        {task.description.length > 100 ? task.description.substring(0, 97) + '...' : task.description}
-      </p>
+      {/* Descrição - só mostrar se existir */}
+      {task.description && task.description.trim() && (
+        <p className={`text-gray-600 mb-2 text-sm ${task.status === TASK_STATUS.COMPLETED ? "line-through text-gray-500" : ""}`}>
+          {task.description.length > 100 ? 
+            task.description.substring(0, 97) + '...' : 
+            task.description
+          }
+        </p>
+      )}
       
+      {/* Data de entrega */}
       {task.dueDate && (
-        <div className={`flex items-center text-sm mb-3 ${isOverdue ? "text-red-600 font-medium" : "text-gray-500"}`}>
-          {isOverdue ? (
-            <AlertTriangle size={14} className="mr-1" />
-          ) : (
-            <Calendar size={14} className="mr-1" />
-          )}
+        <div className="flex items-center text-sm text-gray-500 mb-3">
+          <Calendar size={14} className="mr-1" />
           <span>
             {formatDate(task.dueDate)}
             {task.dueTime && ` às ${task.dueTime}`}
-            {isOverdue && " - ATRASADA"}
           </span>
         </div>
       )}
       
+      {/* Botões de ação */}
       <div className="flex justify-end gap-1 mt-2" onClick={(e) => e.stopPropagation()}>
-        {task.status !== TASK_STATUS.COMPLETED && (
-          <button 
-            onClick={(e) => {
-              e.stopPropagation();
-              onComplete(task.id);
-            }} 
-            className="flex items-center gap-1 px-2 py-1 bg-green-50 hover:bg-green-100 rounded text-green-600 text-xs"
-          >
-            <Check size={14} />
-            Concluir
-          </button>
+        {task.status === TASK_STATUS.COMPLETED ? (
+          // Botões para tarefas concluídas
+          <>
+            <button 
+              onClick={handleReactivate}
+              className="flex items-center gap-1 px-2 py-1 bg-blue-50 hover:bg-blue-100 rounded text-blue-600 text-xs"
+              title="Reativar tarefa"
+            >
+              <RotateCcw size={14} />
+              Reativar
+            </button>
+            <button 
+              onClick={(e) => {
+                e.stopPropagation();
+                onEdit(task.id);
+              }} 
+              className="flex items-center gap-1 px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded text-gray-700 text-xs"
+              title="Editar tarefa"
+            >
+              <Edit size={14} />
+            </button>
+            <button 
+              onClick={(e) => {
+                e.stopPropagation();
+                onDelete(task.id);
+              }} 
+              className="flex items-center gap-1 px-2 py-1 bg-red-50 hover:bg-red-100 rounded text-red-600 text-xs"
+              title="Excluir tarefa"
+            >
+              <Trash2 size={14} />
+            </button>
+          </>
+        ) : (
+          // Botões para tarefas não concluídas
+          <>
+            <button 
+              onClick={(e) => {
+                e.stopPropagation();
+                onComplete(task.id);
+              }} 
+              className="flex items-center gap-1 px-2 py-1 bg-green-50 hover:bg-green-100 rounded text-green-600 text-xs"
+              title="Marcar como concluída"
+            >
+              <Check size={14} />
+            </button>
+            <button 
+              onClick={(e) => {
+                e.stopPropagation();
+                onEdit(task.id);
+              }} 
+              className="flex items-center gap-1 px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded text-gray-700 text-xs"
+              title="Editar tarefa"
+            >
+              <Edit size={14} />
+            </button>
+            <button 
+              onClick={(e) => {
+                e.stopPropagation();
+                onDelete(task.id);
+              }} 
+              className="flex items-center gap-1 px-2 py-1 bg-red-50 hover:bg-red-100 rounded text-red-600 text-xs"
+              title="Excluir tarefa"
+            >
+              <Trash2 size={14} />
+            </button>
+          </>
         )}
-        <button 
-          onClick={(e) => {
-            e.stopPropagation();
-            onEdit(task.id);
-          }} 
-          className="flex items-center gap-1 px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded text-gray-700 text-xs"
-        >
-          <Edit size={14} />
-          Editar
-        </button>
-        <button 
-          onClick={(e) => {
-            e.stopPropagation();
-            onDelete(task.id);
-          }} 
-          className="flex items-center gap-1 px-2 py-1 bg-red-50 hover:bg-red-100 rounded text-red-600 text-xs"
-        >
-          <Trash2 size={14} />
-          Excluir
-        </button>
       </div>
+
+      {/* Debug info - remover em produção */}
+      {process.env.NODE_ENV === 'development' && (
+        <div className="mt-2 p-2 bg-gray-100 rounded text-xs">
+          <strong>Debug:</strong>
+          <div>ID: {task.id}</div>
+          <div>Nome: {task.name || 'VAZIO'}</div>
+          <div>Status: {task.status || 'VAZIO'}</div>
+          <div>Prioridade: {task.priority || 'VAZIO'}</div>
+        </div>
+      )}
     </div>
   );
 };

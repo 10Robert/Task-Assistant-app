@@ -1,7 +1,7 @@
-// src/services/api.js
+// src/services/api.js - VERSÃO FINAL LIMPA
+
 const API_BASE_URL = 'http://localhost:8000/api/v1';
 
-// Função auxiliar para fazer requisições
 const makeRequest = async (url, options = {}) => {
   try {
     const response = await fetch(url, {
@@ -13,18 +13,22 @@ const makeRequest = async (url, options = {}) => {
     });
 
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+      const errorText = await response.text();
+      throw new Error(`HTTP ${response.status}: ${errorText}`);
     }
 
     return response.status === 204 ? null : await response.json();
   } catch (error) {
-    console.error('API Error:', error);
     throw error;
   }
 };
 
 export const taskAPI = {
-  // Listar todas as tarefas
+  testConnection: async () => {
+    const response = await fetch('http://localhost:8000/health');
+    return await response.json();
+  },
+
   getTasks: (params = {}) => {
     const searchParams = new URLSearchParams();
     if (params.status) searchParams.append('status', params.status);
@@ -37,17 +41,14 @@ export const taskAPI = {
     return makeRequest(url);
   },
 
-  // Obter tarefa por ID
   getTask: (id) => makeRequest(`${API_BASE_URL}/tasks/${id}`),
 
-  // Criar nova tarefa
   createTask: (task) => {
-    // Converter dados do frontend para o formato da API
     const apiTask = {
-      name: task.name,
+      name: task.name || "Nova tarefa",
       description: task.description || "",
-      priority: task.priority,
-      status: task.status,
+      priority: task.priority || "Média",
+      status: task.status || "Pendente",
       due_date: task.dueDate || null,
       due_time: task.dueTime || null,
     };
@@ -58,13 +59,12 @@ export const taskAPI = {
     });
   },
 
-  // Atualizar tarefa
   updateTask: (id, task) => {
     const apiTask = {
-      name: task.name,
+      name: task.name || "Tarefa sem nome",
       description: task.description || "",
-      priority: task.priority,
-      status: task.status,
+      priority: task.priority || "Média", 
+      status: task.status || "Pendente",
       due_date: task.dueDate || null,
       due_time: task.dueTime || null,
     };
@@ -75,22 +75,23 @@ export const taskAPI = {
     });
   },
 
-  // Atualizar apenas o status da tarefa
   updateTaskStatus: (id, status, notes = null) => {
+    const payload = { 
+      status: status,
+      notes: notes 
+    };
+    
     return makeRequest(`${API_BASE_URL}/tasks/${id}/status`, {
       method: 'PATCH',
-      body: JSON.stringify({ status, notes }),
+      body: JSON.stringify(payload),
     });
   },
 
-  // Deletar tarefa
   deleteTask: (id) => makeRequest(`${API_BASE_URL}/tasks/${id}`, {
     method: 'DELETE',
   }),
 
-  // Obter tarefas por data específica
   getTasksByDate: (date) => {
-    // Converter Date object para string no formato YYYY-MM-DD
     const dateString = date instanceof Date 
       ? date.toISOString().split('T')[0] 
       : date;
@@ -98,29 +99,37 @@ export const taskAPI = {
     return makeRequest(`${API_BASE_URL}/tasks/date/${dateString}`);
   },
 
-  // Obter histórico de uma tarefa
   getTaskHistory: (id) => makeRequest(`${API_BASE_URL}/tasks/${id}/history`),
 };
 
 // Função para converter dados da API para o formato do frontend
 export const convertAPITaskToFrontend = (apiTask) => {
+  if (!apiTask || typeof apiTask !== 'object') {
+    return null;
+  }
+
   return {
     id: apiTask.id,
-    name: apiTask.name,
+    name: apiTask.name || 'Tarefa sem nome',
     description: apiTask.description || "",
-    priority: apiTask.priority,
-    status: apiTask.status,
-    dueDate: apiTask.due_date,
-    dueTime: apiTask.due_time,
+    priority: apiTask.priority || "Média",
+    status: apiTask.status || "Pendente", 
+    dueDate: apiTask.due_date || null,
+    dueTime: apiTask.due_time || null,
     history: apiTask.history || [],
     createdAt: apiTask.created_at,
     updatedAt: apiTask.updated_at,
   };
 };
 
-// Função para converter múltiplas tarefas
 export const convertAPITasksToFrontend = (apiTasks) => {
-  return apiTasks.map(convertAPITaskToFrontend);
+  if (!Array.isArray(apiTasks)) {
+    return [];
+  }
+  
+  return apiTasks
+    .map(convertAPITaskToFrontend)
+    .filter(task => task !== null);
 };
 
 export default taskAPI;

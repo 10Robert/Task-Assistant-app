@@ -1,11 +1,53 @@
+// src/context/TaskContext.jsx - VERSÃO COM HISTÓRICO CORRIGIDO
+
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { TASK_STATUS } from '../constants/taskStatuses';
-import { TASK_PRIORITY } from '../constants/taskPriorities';
 import { taskAPI, convertAPITasksToFrontend, convertAPITaskToFrontend } from '../services/api';
 
 const TaskContext = createContext();
 
 export const useTaskContext = () => useContext(TaskContext);
+
+// FUNÇÃO CORRIGIDA PARA LIDAR COM RESPOSTA DA API
+const convertAPIResponseToFrontend = (apiResponse) => {
+  if (!apiResponse) {
+    return null;
+  }
+
+  // Se a API retornar um array, pegar o primeiro item
+  if (Array.isArray(apiResponse)) {
+    if (apiResponse.length === 0) {
+      return null;
+    }
+    return convertSingleTask(apiResponse[0]);
+  }
+  
+  // Se for um objeto único, converter diretamente
+  if (typeof apiResponse === 'object') {
+    return convertSingleTask(apiResponse);
+  }
+
+  return null;
+};
+
+const convertSingleTask = (apiTask) => {
+  if (!apiTask || typeof apiTask !== 'object') {
+    return null;
+  }
+
+  return {
+    id: apiTask.id,
+    name: apiTask.name || 'Tarefa sem nome',
+    description: apiTask.description || "",
+    priority: apiTask.priority || "Média",
+    status: apiTask.status || "Pendente", 
+    dueDate: apiTask.due_date || null,
+    dueTime: apiTask.due_time || null,
+    history: apiTask.history || [],
+    createdAt: apiTask.created_at,
+    updatedAt: apiTask.updated_at,
+  };
+};
 
 export const TaskProvider = ({ children }) => {
   const [tasks, setTasks] = useState([]);
@@ -15,57 +57,62 @@ export const TaskProvider = ({ children }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // Testar conexão e carregar tarefas ao inicializar
   useEffect(() => {
-    testConnectionAndLoadTasks();
+    loadTasks();
   }, []);
 
-  const testConnectionAndLoadTasks = async () => {
+  const loadTasks = async () => {
     try {
       setLoading(true);
       setError(null);
-      
-      
-      // Carregar tarefas
       const apiTasks = await taskAPI.getTasks();
-    
-      
       const frontendTasks = convertAPITasksToFrontend(apiTasks);
       setTasks(frontendTasks);
-      
     } catch (err) {
-      setError(`Erro de conexão: ${err.message}`);
-
+      setError('Erro ao carregar tarefas');
     } finally {
       setLoading(false);
     }
   };
 
+  // FUNÇÃO PARA RECARREGAR UMA TAREFA ESPECÍFICA COM HISTÓRICO ATUALIZADO
+  const reloadTask = async (taskId) => {
+    try {
+      console.log('🔄 Recarregando tarefa:', taskId);
+      const apiTask = await taskAPI.getTask(taskId);
+      const frontendTask = convertAPIResponseToFrontend(apiTask);
+      
+      if (frontendTask) {
+        setTasks(prev => prev.map(task => 
+          task.id === taskId ? frontendTask : task
+        ));
+        
+        // Atualizar selectedTask se for a mesma
+        if (selectedTask && selectedTask.id === taskId) {
+          setSelectedTask(frontendTask);
+        }
+        
+        console.log('✅ Tarefa recarregada com histórico:', frontendTask);
+        return frontendTask;
+      }
+    } catch (err) {
+      console.error('❌ Erro ao recarregar tarefa:', err);
+    }
+  };
 
   const createTask = async (taskData) => {
     try {
       setLoading(true);
       setError(null);
-      
       const apiTask = await taskAPI.createTask(taskData);
-    
-      
-      const frontendTask = convertAPITaskToFrontend(apiTask);
-      setTasks(prev => [...prev, frontendTask]);
+      const frontendTask = convertAPIResponseToFrontend(apiTask);
+      if (frontendTask) {
+        setTasks(prev => [...prev, frontendTask]);
+      }
       return frontendTask;
-      
     } catch (err) {
-
-      setError(`Erro ao criar: ${err.message}`);
-      
-      // Fallback local
-      const localTask = {
-        id: Date.now(),
-        ...taskData,
-        history: []
-      };
-      setTasks(prev => [...prev, localTask]);
-      return localTask;
+      setError('Erro ao criar tarefa');
+      throw err;
     } finally {
       setLoading(false);
     }
@@ -76,22 +123,39 @@ export const TaskProvider = ({ children }) => {
       setLoading(true);
       setError(null);
       
-      const apiTask = await taskAPI.updateTask(id, updates);
-      const frontendTask = convertAPITaskToFrontend(apiTask);
+      const currentTask = tasks.find(t => t.id === id);
+      if (!currentTask) {
+        throw new Error('Tarefa não encontrada');
+      }
+
+      const completeTaskData = {
+        name: updates.name !== undefined ? updates.name : currentTask.name,
+        description: updates.description !== undefined ? updates.description : currentTask.description,
+        priority: updates.priority !== undefined ? updates.priority : currentTask.priority,
+        status: updates.status !== undefined ? updates.status : currentTask.status,
+        dueDate: updates.dueDate !== undefined ? updates.dueDate : currentTask.dueDate,
+        dueTime: updates.dueTime !== undefined ? updates.dueTime : currentTask.dueTime
+      };
       
-      setTasks(prev => prev.map(task => 
-        task.id === id ? frontendTask : task
-      ));
+      const apiTask = await taskAPI.updateTask(id, completeTaskData);
+      const frontendTask = convertAPIResponseToFrontend(apiTask);
+      
+      if (frontendTask) {
+        setTasks(prev => prev.map(task => 
+          task.id === id ? frontendTask : task
+        ));
+        
+        if (selectedTask && selectedTask.id === id) {
+          setSelectedTask(frontendTask);
+        }
+        
+        // CORREÇÃO: Recarregar tarefa para obter histórico atualizado
+        setTimeout(() => reloadTask(id), 500);
+      }
       
       return frontendTask;
     } catch (err) {
-
-      setError(`Erro ao atualizar: ${err.message}`);
-      
-      // Fallback local
-      setTasks(prev => prev.map(task => 
-        task.id === id ? { ...task, ...updates } : task
-      ));
+      setError('Erro ao atualizar tarefa');
       throw err;
     } finally {
       setLoading(false);
@@ -102,17 +166,52 @@ export const TaskProvider = ({ children }) => {
     try {
       setLoading(true);
       setError(null);
-      
       await taskAPI.deleteTask(id);
       setTasks(prev => prev.filter(task => task.id !== id));
       
+      if (selectedTask && selectedTask.id === id) {
+        setSelectedTask(null);
+      }
     } catch (err) {
-      setError(`Erro ao deletar: ${err.message}`);
-      
-      // Fallback local
-      setTasks(prev => prev.filter(task => task.id !== id));
+      setError('Erro ao deletar tarefa');
+      throw err;
     } finally {
       setLoading(false);
+    }
+  };
+
+  const changeTaskStatus = async (id, newStatus, note = null) => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      console.log('🔄 Alterando status:', { id, newStatus, note });
+      
+      const apiResponse = await taskAPI.updateTaskStatus(id, newStatus, note);
+      console.log('🔄 Resposta da API:', apiResponse);
+      
+      const frontendTask = convertAPIResponseToFrontend(apiResponse);
+      
+      if (frontendTask) {
+        setTasks(prev => prev.map(task => 
+          task.id === id ? frontendTask : task
+        ));
+        
+        if (selectedTask && selectedTask.id === id) {
+          setSelectedTask(frontendTask);
+        }
+        
+        // CORREÇÃO: Recarregar tarefa após 500ms para garantir que o histórico foi salvo
+        setTimeout(() => reloadTask(id), 500);
+      }
+      
+      return frontendTask;
+    } catch (err) {
+      setError('Erro ao alterar status da tarefa');
+      throw err;
+    } finally {
+      setLoading(false);
+      setDraggedTask(null);
     }
   };
 
@@ -121,7 +220,6 @@ export const TaskProvider = ({ children }) => {
     return tasks.filter(task => task.dueDate === dateString);
   };
 
-  // Funções auxiliares para compatibilidade
   const handleEdit = (taskId) => {
     const task = tasks.find(t => t.id === taskId);
     if (task) {
@@ -137,21 +235,10 @@ export const TaskProvider = ({ children }) => {
   };
 
   const handleCompleteTask = async (taskId) => {
-    const task = tasks.find(t => t.id === taskId);
-    if (task) {
-      await updateTask(taskId, { ...task, status: TASK_STATUS.COMPLETED });
-    }
-  };
-
-  const changeTaskStatus = async (id, newStatus, note = null) => {
-    const task = tasks.find(t => t.id === id);
-    if (task) {
-      await updateTask(id, { ...task, status: newStatus });
-    }
+    await changeTaskStatus(taskId, TASK_STATUS.COMPLETED, 'Tarefa marcada como concluída');
   };
 
   const value = {
-    // Estado
     tasks,
     selectedTask,
     setSelectedTask,
@@ -161,15 +248,12 @@ export const TaskProvider = ({ children }) => {
     setDraggedTask,
     loading,
     error,
-    
-    // Funções da API
     createTask,
     updateTask,
     deleteTask,
     changeTaskStatus,
-    testConnectionAndLoadTasks,
-    
-    // Funções utilitárias
+    loadTasks,
+    reloadTask, // Expor função para recarregar tarefa
     getTasksForDate,
     handleEdit,
     handleDelete,

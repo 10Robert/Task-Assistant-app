@@ -1,10 +1,11 @@
+// src/components/Task/TaskModal.jsx - VERSÃO COM DEBUG
+
 import React, { useState, useEffect } from 'react';
-import { X, Save, Calendar, Clock, Tag, AlignLeft, CheckSquare } from 'lucide-react';
+import { X } from 'lucide-react';
 import { useTaskContext } from '../../context/TaskContext';
 import StatusTimeline from './StatusTimeline';
 import { ALL_PRIORITIES } from '../../constants/taskPriorities';
 import { ALL_STATUSES } from '../../constants/taskStatuses';
-import { getPriorityColor } from '../../utils/formatUtils';
 
 const TaskModal = () => {
   const { 
@@ -20,21 +21,52 @@ const TaskModal = () => {
   const [editedTask, setEditedTask] = useState({
     name: "",
     description: "",
-    priority: "",
+    priority: "Média",
+    status: "Pendente",
     dueDate: "",
-    dueTime: "",
-    notes: ""
+    dueTime: ""
   });
 
+  // Debug do selectedTask
+  useEffect(() => {
+    console.log('🎯 ===== TASK MODAL DEBUG =====');
+    console.log('🎯 ShowModal:', showModal);
+    console.log('🎯 SelectedTask:', selectedTask);
+    console.log('🎯 SelectedTask ID:', selectedTask?.id);
+    console.log('🎯 SelectedTask History:', selectedTask?.history);
+    if (selectedTask?.history) {
+      console.log('🎯 Histórico detalhado:');
+      selectedTask.history.forEach((item, index) => {
+        console.log(`  ${index}:`, {
+          id: item.id,
+          status: item.status,
+          notes: item.notes,
+          created_at: item.created_at
+        });
+      });
+    }
+    console.log('🎯 ===== FIM DEBUG =====');
+  }, [selectedTask, showModal]);
+
+  // Atualizar estado quando selectedTask mudar
   useEffect(() => {
     if (selectedTask) {
       setEditedTask({
-        name: selectedTask.name,
-        description: selectedTask.description,
-        priority: selectedTask.priority,
+        name: selectedTask.name || "",
+        description: selectedTask.description || "",
+        priority: selectedTask.priority || "Média",
+        status: selectedTask.status || "Pendente",
         dueDate: selectedTask.dueDate || "",
-        dueTime: selectedTask.dueTime || "",
-        notes: selectedTask.notes || ""
+        dueTime: selectedTask.dueTime || ""
+      });
+    } else {
+      setEditedTask({
+        name: "",
+        description: "",
+        priority: "Média",
+        status: "Pendente",
+        dueDate: "",
+        dueTime: ""
       });
     }
   }, [selectedTask]);
@@ -42,197 +74,208 @@ const TaskModal = () => {
   const handleModalClose = () => {
     setShowModal(false);
     setSelectedTask(null);
+    setEditedTask({
+      name: "",
+      description: "",
+      priority: "Média",
+      status: "Pendente",
+      dueDate: "",
+      dueTime: ""
+    });
   };
 
-  const handleModalSave = () => {
-    if (selectedTask) {
-      // Adicionar notas ao histórico se houver
-      const updates = {
-        ...editedTask,
-        status: selectedTask.status
-      };
-      
-      if (tasks.some(t => t.id === selectedTask.id)) {
-        // Update existing task
-        updateTask(selectedTask.id, updates);
-      } else {
-        // Add new task
-        createTask(updates);
-      }
+  const handleModalSave = async () => {
+    if (!editedTask.name.trim()) {
+      alert('Nome da tarefa é obrigatório');
+      return;
     }
-    setShowModal(false);
-    setSelectedTask(null);
+
+    try {
+      if (selectedTask && tasks.some(t => t.id === selectedTask.id)) {
+        // Atualizar tarefa existente
+        await updateTask(selectedTask.id, {
+          name: editedTask.name.trim(),
+          description: editedTask.description.trim(),
+          priority: editedTask.priority,
+          status: editedTask.status,
+          dueDate: editedTask.dueDate || null,
+          dueTime: editedTask.dueTime || null
+        });
+      } else {
+        // Criar nova tarefa
+        await createTask({
+          name: editedTask.name.trim(),
+          description: editedTask.description.trim(),
+          priority: editedTask.priority,
+          status: editedTask.status,
+          dueDate: editedTask.dueDate || null,
+          dueTime: editedTask.dueTime || null
+        });
+      }
+      
+      handleModalClose();
+    } catch (error) {
+      alert('Erro ao salvar tarefa: ' + error.message);
+    }
   };
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setEditedTask({
-      ...editedTask,
+    setEditedTask(prev => ({
+      ...prev,
       [name]: value
-    });
+    }));
   };
 
-  if (!showModal || !selectedTask) return null;
+  if (!showModal) return null;
+
+  const isEditing = selectedTask && tasks.some(t => t.id === selectedTask.id);
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-        {/* Cabeçalho */}
-        <div className="flex justify-between items-center p-4 border-b sticky top-0 bg-white z-10">
-          <h2 className="text-xl font-bold text-gray-800">
-            {tasks.some(t => t.id === selectedTask?.id) ? 'Editar Tarefa' : 'Nova Tarefa'}
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg p-6 w-full max-w-md max-h-screen overflow-y-auto">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-bold">
+            {isEditing ? `Editar Tarefa (ID: ${selectedTask?.id})` : 'Nova Tarefa'}
           </h2>
           <button 
             onClick={handleModalClose}
-            className="text-gray-500 hover:text-gray-700 p-1 rounded-full hover:bg-gray-100"
+            className="text-gray-500 hover:text-gray-700"
           >
-            <X size={20} />
+            <X size={24} />
           </button>
         </div>
         
-        {/* Conteúdo */}
-        <div className="p-4 md:p-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5">
-            {/* Coluna esquerda (ou topo em mobile) */}
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center">
-                  <CheckSquare size={16} className="mr-2" />
-                  Nome da Tarefa
-                </label>
-                <input
-                  type="text"
-                  name="name"
-                  value={editedTask.name}
-                  onChange={handleInputChange}
-                  className="w-full p-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="Título da tarefa"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center">
-                  <AlignLeft size={16} className="mr-2" />
-                  Descrição
-                </label>
-                <textarea
-                  name="description"
-                  value={editedTask.description}
-                  onChange={handleInputChange}
-                  rows="4"
-                  className="w-full p-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="Descreva detalhes da tarefa"
-                ></textarea>
-              </div>
-              
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center">
-                    <Tag size={16} className="mr-2" />
-                    Prioridade
-                  </label>
-                  <select
-                    name="priority"
-                    value={editedTask.priority}
-                    onChange={handleInputChange}
-                    className={`w-full p-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500 ${getPriorityColor(editedTask.priority)}`}
-                  >
-                    {ALL_PRIORITIES.map(priority => (
-                      <option key={priority} value={priority}>{priority}</option>
-                    ))}
-                  </select>
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center">
-                    <CheckSquare size={16} className="mr-2" />
-                    Status
-                  </label>
-                  <select
-                    name="status"
-                    value={selectedTask?.status}
-                    onChange={(e) => setSelectedTask({...selectedTask, status: e.target.value})}
-                    className="w-full p-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500"
-                  >
-                    {ALL_STATUSES.map(status => (
-                      <option key={status} value={status}>{status}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
+        {/* Debug info */}
+        {isEditing && (
+          <div className="mb-4 p-2 bg-yellow-50 rounded text-xs">
+            <strong>Debug Modal:</strong>
+            <div>Task ID: {selectedTask?.id}</div>
+            <div>Task Name: {selectedTask?.name}</div>
+            <div>History Items: {selectedTask?.history?.length || 0}</div>
+            <div>Is Editing: {isEditing ? 'Sim' : 'Não'}</div>
+          </div>
+        )}
+        
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Nome da Tarefa *
+            </label>
+            <input
+              type="text"
+              name="name"
+              value={editedTask.name}
+              onChange={handleInputChange}
+              className="w-full p-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500"
+              placeholder="Digite o nome da tarefa"
+              required
+            />
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Descrição
+            </label>
+            <textarea
+              name="description"
+              value={editedTask.description}
+              onChange={handleInputChange}
+              rows="3"
+              className="w-full p-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500"
+              placeholder="Descreva a tarefa (opcional)"
+            ></textarea>
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Prioridade
+            </label>
+            <select
+              name="priority"
+              value={editedTask.priority}
+              onChange={handleInputChange}
+              className="w-full p-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500"
+            >
+              {ALL_PRIORITIES.map(priority => (
+                <option key={priority} value={priority}>{priority}</option>
+              ))}
+            </select>
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Status
+            </label>
+            <select
+              name="status"
+              value={editedTask.status}
+              onChange={handleInputChange}
+              className="w-full p-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500"
+            >
+              {ALL_STATUSES.map(status => (
+                <option key={status} value={status}>{status}</option>
+              ))}
+            </select>
+          </div>
+          
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Data de Entrega
+              </label>
+              <input
+                type="date"
+                name="dueDate"
+                value={editedTask.dueDate}
+                onChange={handleInputChange}
+                className="w-full p-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500"
+              />
             </div>
-            
-            {/* Coluna direita (ou embaixo em mobile) */}
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center">
-                    <Calendar size={16} className="mr-2" />
-                    Data de Entrega
-                  </label>
-                  <input
-                    type="date"
-                    name="dueDate"
-                    value={editedTask.dueDate}
-                    onChange={handleInputChange}
-                    className="w-full p-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center">
-                    <Clock size={16} className="mr-2" />
-                    Horário
-                  </label>
-                  <input
-                    type="time"
-                    name="dueTime"
-                    value={editedTask.dueTime || ""}
-                    onChange={handleInputChange}
-                    className="w-full p-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500"
-                  />
-                </div>
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center">
-                  <AlignLeft size={16} className="mr-2" />
-                  Anotações
-                </label>
-                <textarea
-                  name="notes"
-                  value={editedTask.notes || ""}
-                  onChange={handleInputChange}
-                  rows="4"
-                  className="w-full p-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="Adicione notas ou observações"
-                ></textarea>
-              </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Horário
+              </label>
+              <input
+                type="time"
+                name="dueTime"
+                value={editedTask.dueTime}
+                onChange={handleInputChange}
+                className="w-full p-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500"
+              />
             </div>
           </div>
           
-          {/* Timeline de status */}
-          {selectedTask && selectedTask.history && selectedTask.history.length > 0 && (
-            <div className="mt-6 bg-gray-50 p-4 rounded-lg border border-gray-200">
-              <StatusTimeline history={selectedTask.history} />
+          {/* Mostrar StatusTimeline apenas se for edição */}
+          {isEditing && selectedTask && (
+            <div>
+              <div className="mb-2 p-2 bg-blue-50 rounded text-xs">
+                <strong>Passando para StatusTimeline:</strong>
+                <div>TaskId: {selectedTask.id}</div>
+                <div>History: {selectedTask.history?.length || 0} itens</div>
+              </div>
+              
+              <StatusTimeline 
+                history={selectedTask.history} 
+                taskId={selectedTask.id}
+              />
             </div>
           )}
         </div>
         
-        {/* Rodapé */}
-        <div className="border-t p-4 flex justify-end space-x-3 sticky bottom-0 bg-white">
+        <div className="mt-6 flex justify-end space-x-3">
           <button
             onClick={handleModalClose}
-            className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-100 flex items-center"
+            className="px-4 py-2 border border-gray-300 rounded text-gray-700 hover:bg-gray-100"
           >
-            <X size={16} className="mr-2" />
             Cancelar
           </button>
           <button
             onClick={handleModalSave}
-            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center"
+            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+            disabled={!editedTask.name.trim()}
           >
-            <Save size={16} className="mr-2" />
-            Salvar
+            {isEditing ? 'Atualizar' : 'Criar'}
           </button>
         </div>
       </div>
